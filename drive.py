@@ -1,0 +1,41 @@
+import socketio
+import eventlet
+import numpy as np
+from flask import Flask
+from keras.models import load_model
+import base64
+from io import BytesIO
+from PIL import Image
+import cv2
+ 
+
+def img_preprocess(img):
+    img = img[50:135,:,:]
+    img = cv2.cvtColor(img, cv2.COLOR_RGB2YUV)
+    img = cv2.GaussianBlur(img,  (3, 3), 0)
+    img = cv2.resize(img, (200, 66))
+    img = img/255
+    return img
+ 
+ 
+def telemetry(sid, data):
+    speed = float(data['speed'])
+    image = Image.open(BytesIO(base64.b64decode(data['image'])))
+    image = np.asarray(image)
+    image = img_preprocess(image)
+    image = np.array([image])
+    steering_angle = float(model.predict(image))
+    throttle = 1.0 - speed/speed_limit
+    print('{} {} {}'.format(steering_angle, throttle, speed))
+    send_control(steering_angle, throttle)
+ 
+ 
+# SEND CONTROL TO THE Raspberry Pi CAR GOES HERE
+
+
+
+ 
+ 
+if __name__ == '__main__':
+    model = load_model('Models/model51.h5')
+    
