@@ -1,13 +1,24 @@
-import socketio
 import eventlet
 import numpy as np
-from flask import Flask
 from keras.models import load_model
 import base64
 from io import BytesIO
 from PIL import Image
 import cv2
- 
+import RPi.GPIO as GPIO
+import time
+
+
+# Set up GPIO pins for motor control
+GPIO.setwarnings(False)
+GPIO.setmode(GPIO.BOARD)
+GPIO.setup(7, GPIO.OUT)  # Left motor
+GPIO.setup(11, GPIO.OUT)  # Right motor
+left_pwm = GPIO.PWM(7, 100)
+right_pwm = GPIO.PWM(11, 100)
+left_pwm.start(0)
+right_pwm.start(0)
+
 
 def img_preprocess(img):
     img = img[50:135,:,:]
@@ -30,12 +41,23 @@ def telemetry(sid, data):
     send_control(steering_angle, throttle)
  
  
-# SEND CONTROL TO THE Raspberry Pi CAR GOES HERE
+def send_control(steering_angle, throttle):
+    # Convert steering angle to duty cycle for left and right motors
+    left_duty = 7.5 - steering_angle * 3.75
+    right_duty = 7.5 + steering_angle * 3.75
+    # Set motor speeds
+    left_pwm.ChangeDutyCycle(max(min(throttle * left_duty, 10), 0))
+    right_pwm.ChangeDutyCycle(max(min(throttle * right_duty, 10), 0))
 
 
-
- 
- 
 if __name__ == '__main__':
     model = load_model('Models/model51.h5')
-    
+    speed_limit = 30  # Set speed limit for throttle calculation
+    try:
+        eventlet.wsgi.server(eventlet.listen(('', 4567)), telemetry)
+    except KeyboardInterrupt:
+        pass
+    finally:
+        left_pwm.stop()
+        right_pwm.stop()
+        GPIO.cleanup()
