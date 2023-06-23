@@ -77,7 +77,7 @@ def send_control(steering_angle, throttle):
 
 if __name__ == '__main__':
     model = load_model('Models/model51.h5')
-    speed_limit = 20  # Set speed limit for throttle calculation
+    speed_limit = 30  # Set speed limit for throttle calculation
     try:
         eventlet.wsgi.server(eventlet.listen(('', 4567)), telemetry)
     except KeyboardInterrupt:
