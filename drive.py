@@ -12,13 +12,28 @@ import time
 # Set up GPIO pins for motor control
 GPIO.setwarnings(False)
 GPIO.setmode(GPIO.BOARD)
-GPIO.setup(7, GPIO.OUT)  # Left motor
-GPIO.setup(11, GPIO.OUT)  # Right motor
-left_pwm = GPIO.PWM(7, 100)
-right_pwm = GPIO.PWM(11, 100)
-left_pwm.start(0)
-right_pwm.start(0)
 
+# Motor 1 pins
+in1 = 11
+in2 = 13
+en1 = 10
+
+# Motor 2 pins
+in3 = 16
+in4 = 18
+en2 = 15
+
+GPIO.setup(in1,GPIO.OUT)
+GPIO.setup(in2,GPIO.OUT)
+GPIO.setup(in3,GPIO.OUT)
+GPIO.setup(in4,GPIO.OUT)
+GPIO.setup(en1,GPIO.OUT)
+GPIO.setup(en2,GPIO.OUT)
+
+p1 = GPIO.PWM(en1,1000)
+p2 = GPIO.PWM(en2,1000)
+p1.start(0)
+p2.start(0)
 
 def img_preprocess(img):
     img = img[50:135,:,:]
@@ -42,12 +57,22 @@ def telemetry(sid, data):
  
  
 def send_control(steering_angle, throttle):
-    # Convert steering angle to duty cycle for left and right motors
-    left_duty = 7.5 - steering_angle * 3.75
-    right_duty = 7.5 + steering_angle * 3.75
+    # Convert steering angle to motor speed
+    motor_speed = max(min(throttle * 100, 100), 0)
+    # Set motor directions
+    if steering_angle > 0:
+        GPIO.output(in1,GPIO.HIGH)
+        GPIO.output(in2,GPIO.LOW)
+        GPIO.output(in3,GPIO.LOW)
+        GPIO.output(in4,GPIO.HIGH)
+    else:
+        GPIO.output(in1,GPIO.LOW)
+        GPIO.output(in2,GPIO.HIGH)
+        GPIO.output(in3,GPIO.HIGH)
+        GPIO.output(in4,GPIO.LOW)
     # Set motor speeds
-    left_pwm.ChangeDutyCycle(max(min(throttle * left_duty, 10), 0))
-    right_pwm.ChangeDutyCycle(max(min(throttle * right_duty, 10), 0))
+    p1.ChangeDutyCycle(motor_speed)
+    p2.ChangeDutyCycle(motor_speed)
 
 
 if __name__ == '__main__':
@@ -58,6 +83,7 @@ if __name__ == '__main__':
     except KeyboardInterrupt:
         pass
     finally:
-        left_pwm.stop()
-        right_pwm.stop()
+        p1.stop()
+        p2.stop()
         GPIO.cleanup()
+
