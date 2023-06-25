@@ -2,11 +2,6 @@ import cv2
 import numpy as np
 from keras.models import load_model
 
-img_path = 'TS Data/IMG/stop.jpg'
-
-# Load the trained model
-model = load_model('Models/TSmodel.h5')
-
 class_names = {
     0: 'Speed limit (20km/h)',
     1: 'Speed limit (30km/h)',
@@ -60,63 +55,59 @@ def preprocess(img):
     img = img / 255
     return img
 
-# Read the image file
-img = cv2.imread(img_path)
+def predict_sign(img_path, model_path):
+    # Load the trained model
+    model = load_model(model_path)
 
-# Make sure that img is not None
-if img is not None:
-    # Preprocess the image
-    img_preprocessed = preprocess(img)
-    img_preprocessed = img_preprocessed.reshape(1, 32, 32, 1)
+    # Read the image file
+    img = cv2.imread(img_path)
 
-    # Generate the model's predictions
-    predictions = model.predict(img_preprocessed)
+    # Make sure that img is not None
+    if img is not None:
+        # Preprocess the image
+        img_preprocessed = preprocess(img)
+        img_preprocessed = img_preprocessed.reshape(1, 32, 32, 1)
 
-    # Get the index of the class with the highest probability
-    predicted_class = np.argmax(predictions)
-    print(predicted_class, "classs....")
-    # Look up the name of the predicted sign based on its class index
-    predicted_name = class_names[predicted_class]
+        # Generate the model's predictions
+        predictions = model.predict(img_preprocessed)
 
-    # Print the predicted name to the console
-    print(f"Predicted sign name: {predicted_name}")
+        # Get the index of the class with the highest probability
+        predicted_class = np.argmax(predictions)
 
-    # Convert the processed image to color format for displaying the text on it
-    processed_img_gray = (img_preprocessed.squeeze() * 255).astype(np.uint8)
-    processed_img_color = cv2.cvtColor(processed_img_gray, cv2.COLOR_GRAY2BGR)
+        # Look up the name of the predicted sign based on its class index
+        predicted_name = class_names[predicted_class]
 
-    # Display the predicted name on the image
-    font_scale = 1
-    thickness = 2
+        # Convert the processed image to color format for displaying the text on it
+        processed_img_gray = (img_preprocessed.squeeze() * 255).astype(np.uint8)
+        processed_img_color = cv2.cvtColor(processed_img_gray, cv2.COLOR_GRAY2BGR)
 
-    # Determine the font scale based on the image size
-    height, width, _ = processed_img_color.shape
-    font_scale = min(height, width) / 500
+        # Display the predicted name on the image
+        font_scale = 1
+        thickness = 2
 
-    font = cv2.FONT_HERSHEY_SIMPLEX
-    bottom_left_corner_of_text = (10, int(30 * font_scale))
-    font_color = (0, 255, 0)
-    line_type = cv2.LINE_AA
+        # Determine the font scale based on the image size
+        height, width, _ = processed_img_color.shape
+        font_scale = min(height, width) / 500
 
-    cv2.putText(processed_img_color, predicted_name, 
-                bottom_left_corner_of_text, 
-                font, 
-                font_scale,
-                font_color,
-                thickness,
-                line_type)
+        font = cv2.FONT_HERSHEY_SIMPLEX
+        bottom_left_corner_of_text = (10, int(30 * font_scale))
+        font_color = (0, 255, 0)
+        line_type = cv2.LINE_AA
 
-    # Resize the image to a larger size for display
-    resized_img = cv2.resize(processed_img_color, (500, 500))
+        cv2.putText(processed_img_color, predicted_name, 
+                    bottom_left_corner_of_text, 
+                    font, 
+                    font_scale,
+                    font_color,
+                    thickness,
+                    line_type)
 
-    # Display the image
-    cv2.imshow('image', resized_img)
+        # Resize the image to a larger size for display
+        resized_img = cv2.resize(processed_img_color, (500, 500))
 
-    # Wait for a key press to close the window
-    cv2.waitKey(0)
-    print('--------------------------------')
-else:
-    print(f"Error: Failed to load image at {img_path}")
+        # Return the predicted name and the image
+        return predicted_name, resized_img
 
-# Close the window
-cv2.destroyAllWindows()
+    else:
+        # Return an error message if the image could not be loaded
+        return "Error: Failed to load image at {img_path}", None
